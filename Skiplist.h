@@ -1,20 +1,23 @@
 #pragma once
+
 #include<string>
 #include<list>
+#include<vector>
 #include<stdlib.h>
 #include<ctime>
+#include <stdint.h>
 
 #include<iostream>
 
 struct Node {
-	unsigned long key;
+	uint64_t key;
 	std::string value;
 	bool type;//true means boundary node
 	Node* up, * down, * next, * prev;
 	Node():up(NULL),down(NULL),next(NULL),prev(NULL),type(false){}
-	Node(unsigned long k, std::string v) :key(k),value(v),up(NULL), down(NULL), next(NULL), prev(NULL),type(false) {}
+	Node(uint64_t k, std::string v) :key(k),value(v),up(NULL), down(NULL), next(NULL), prev(NULL),type(false) {}
 
-	Node*& insertAsSuccAbove(unsigned long key, std::string value, Node* b);
+    Node* insertAsSuccAbove(uint64_t key, std::string value, Node* b);
 	
 	bool isBoundNode() { return type; }
 };
@@ -22,25 +25,37 @@ struct Node {
 class Skiplist {
 private:
 	std::list<Node*> header;//node are also connect by next
-	int _size;
+	int _size;//node number in skiplist
+	int _pair_size;//key-value size
+	int _ubyte;//unique bytes of key-value
 
 	void init();
-	void clear();
+	
 
 	void addHeader();
 	void removeHeader();
 
-	bool skipSearch(unsigned long& key,Node*& enter,Node*& p);
-	Node* insertAfterAbove(unsigned long key, std::string value, Node* p, Node* b);
+	bool skipSearch(uint64_t& key,Node*& enter,Node*& p);
+    Node* insertAfterAbove(uint64_t key, std::string value, Node* p, Node* b);
 	void removeNode(Node* p);
 	
 
 public:
 	Skiplist();
-	int size()const { return _size; };
-	bool put(unsigned long key, std::string value);
-	bool get(unsigned long key, std::string& value);
-	bool del(unsigned long key);
+	~Skiplist();
+	void clear();
+	int size()const { return _size; }
+	int pair_size()const { return _pair_size; }
+	int ubyte_size()const { return _ubyte; }
+	bool put(uint64_t key, std::string value);
+	bool get(uint64_t key, std::string& value);
+	bool del(uint64_t key);
+
+    Node* get_all_header()const
+    {
+        Node* h=header.back()->next;
+        return h;
+    }
 
 	void showSkipList();
 

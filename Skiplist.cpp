@@ -19,7 +19,8 @@ void Skiplist::addHeader()
 
 void Skiplist::removeHeader()
 {
-	Node* tmp = *header.begin();
+	Node* tmp = header.front();
+	header.pop_front();
 	while (tmp)
 	{
 		Node* cur = tmp;
@@ -32,6 +33,13 @@ Skiplist::Skiplist()
 {
 	srand(time(NULL));
 	_size = 0;
+	_pair_size = 0;
+	_ubyte = 0;
+}
+
+Skiplist::~Skiplist()
+{
+	clear();
 }
 
 void Skiplist::init()
@@ -41,20 +49,25 @@ void Skiplist::init()
 
 void Skiplist::clear()
 {
-	for (Node* it : header)
+	if (header.empty()) return;
+	while(!header.empty())
 	{
-		Node* tmp = it;
+		Node* tmp = header.front();
+		header.pop_front();
 		while (tmp)
 		{
 			Node* cur = tmp;
 			tmp = tmp->next;
 			delete cur;
-		}
-		
+		}	
 	}
+
+	_size = 0;
+	_pair_size = 0;
+	_ubyte = 0;
 }
 
-bool Skiplist::get(unsigned long key,std::string& value)
+bool Skiplist::get(uint64_t key,std::string& value)
 {
 	if (header.empty()) return false;
 	Node* p = *header.begin(),*enter=*header.begin();
@@ -65,7 +78,7 @@ bool Skiplist::get(unsigned long key,std::string& value)
 	return true;	
 }
 
-bool Skiplist::skipSearch(unsigned long& key, Node*& enter, Node*& p)
+bool Skiplist::skipSearch(uint64_t& key, Node*& enter, Node*& p)
 {
 	if (!p) return false;
 	while (true)
@@ -84,14 +97,14 @@ bool Skiplist::skipSearch(unsigned long& key, Node*& enter, Node*& p)
 /*
 return insert Node, p is its pre, b is its down
 */
-Node* Skiplist::insertAfterAbove(unsigned long key, std::string value, Node* p, Node* b)
+Node* Skiplist::insertAfterAbove(uint64_t key, std::string value, Node* p, Node* b)
 {
 	_size++;
-	return p->insertAsSuccAbove(key,value,b);
-
+    Node* insert_node = p->insertAsSuccAbove(key,value,b);
+    return insert_node;
 }
 
-Node*& Node::insertAsSuccAbove(unsigned long key, std::string value, Node* b)
+Node* Node::insertAsSuccAbove(uint64_t key, std::string value, Node* b)
 {
 	Node* insert = new Node(key, value);
 	insert->prev = this;
@@ -100,7 +113,7 @@ Node*& Node::insertAsSuccAbove(unsigned long key, std::string value, Node* b)
 	if (b) b->up = insert;
 	next->prev = insert;
 	next = insert;
-	return insert;
+    return insert;
 }
 
 void Skiplist::removeNode(Node* p)
@@ -111,7 +124,7 @@ void Skiplist::removeNode(Node* p)
 	delete p;
 }
 
-bool Skiplist::put(unsigned long key, std::string value)
+bool Skiplist::put(uint64_t key, std::string value)
 {
 	if (!_size)
 	{
@@ -123,7 +136,7 @@ bool Skiplist::put(unsigned long key, std::string value)
 		while (p->down) p = p->down;
 
 	//p->next is the insert node base
-	Node* base = insertAfterAbove(key, value, p, NULL);
+    Node* base = insertAfterAbove(key, value, p, NULL);
 
 	//random decide whether to increase level
 	while (rand() % 2)
@@ -140,24 +153,30 @@ bool Skiplist::put(unsigned long key, std::string value)
 		//enter = enter->up;//enter is manipulate by next\prev
 		base = insertAfterAbove(key,value,p,base);
 	}
+	++_pair_size;
+	_ubyte += sizeof(key) + value.size();
 	return true;
 }
 
-bool Skiplist::del(unsigned long key)
+bool Skiplist::del(uint64_t key)
 {
 	if (header.empty()) return false;
 	Node* p = *header.begin(),*enter=p;
 	if (!skipSearch(key, enter, p))
 		return false;
+	std::string del_val = p->value;
 	do {
 		Node* lower = p->down;
 		removeNode(p);
 		p = lower;
 	} while (p);
-	while (!header.empty() && (header.front()->next == header.back()))
+	//while (!header.empty() && (header.front()->next == header.back()))
+	while (!header.empty() && (header.front()->next->type == true))
 	{
 		removeHeader();
 	}
+	--_pair_size;
+	_ubyte -= (sizeof(key) + del_val.size());
 	return true;
 }
 
