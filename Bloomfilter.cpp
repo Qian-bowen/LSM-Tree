@@ -7,8 +7,12 @@ void Bloomfilter::add_key(uint64_t key)
 	MurmurHash3_x64_128(&key, sizeof(key), 1, hash_val);
 	for (int i = 0;i < 4;++i)
 	{
-		int idx = hash_val[i] % 10240;
-		bf[idx] = 1;
+		//idx is the index of bit to be set to 1
+		int idx = hash_val[i] % (BUF_SIZE*8);
+		int byte_idx = idx / 8;
+		int byte_remain = idx - byte_idx * 8;
+		uint8_t mask = 1 << (7 - byte_remain);
+		bf[byte_idx] = bf[byte_idx]|mask;
 	}
 }
 
@@ -22,8 +26,12 @@ bool Bloomfilter::not_in_bf(uint64_t key)
 	MurmurHash3_x64_128(&key, sizeof(key), 1, hash_val);
 	for (int i = 0;i < 4;++i)
 	{
-		uint32_t idx = hash_val[i] % 10240;
-		if (0 == bf[idx])
+		int idx = hash_val[i] % (BUF_SIZE * 8);
+		int byte_idx = idx / 8;
+		int byte_remain = idx - byte_idx * 8;
+		uint8_t mask = 1 << (7 - byte_remain);
+		uint8_t maskop = bf[byte_idx] & mask;
+		if (maskop==0)
 			notin = true;
 	}
 	return notin;

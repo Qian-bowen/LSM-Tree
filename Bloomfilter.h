@@ -1,9 +1,12 @@
 #pragma once
 
 #include<stdint.h>
+#include<iostream>//test
+#include <bitset>//test
+#define BUF_SIZE 10240
 
 class Bloomfilter {
-	uint8_t bf[10240];
+	uint8_t bf[BUF_SIZE];
 
 public:
 	void add_key(uint64_t key);

@@ -13,6 +13,7 @@ public:
 	 */
 	KVStoreAPI(const std::string &dir) { }
 	KVStoreAPI() = delete;
+	//virtual ~KVStoreAPI(){}
 
 	/**
 	 * Insert/Update the key-value pair.
@@ -37,5 +38,10 @@ public:
 	 * including memtable and all sstables files.
 	 */
 	virtual void reset() = 0;
+
+	//two test
+	virtual void force_dump_test()=0;
+
+	virtual void show_memtable()=0;
 };
 

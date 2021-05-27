@@ -75,6 +75,10 @@ bool Skiplist::get(uint64_t key,std::string& value)
 		return false;
 	else
 		value = p->value;
+
+	if (value == "~DELETED~")
+		return false;
+	//std::cout << "get value in memtable:" << value << std::endl;
 	return true;	
 }
 
@@ -131,9 +135,19 @@ bool Skiplist::put(uint64_t key, std::string value)
 		addHeader();
 	}
 	//find pos to insert,and go to bottom
+	//replace police: if keys are identital, just replace it
 	Node* p = (*header.begin()),*enter= *header.begin();
 	if (skipSearch(key, enter, p))
-		while (p->down) p = p->down;
+	{
+		p->value = value;
+		while (p->down)
+		{
+			p = p->down;
+			p->value = value;
+		}
+
+		return true;
+	}
 
 	//p->next is the insert node base
     Node* base = insertAfterAbove(key, value, p, NULL);
@@ -188,7 +202,7 @@ void Skiplist::showSkipList()
 		while (tmp->next&&!tmp->next->isBoundNode())
 		{
 			tmp = tmp->next;
-			std::cout << tmp->key << ' ';
+			std::cout << tmp->key << ' '<<tmp->value<<' ';
 		}
 		std::cout << std::endl;
 	}

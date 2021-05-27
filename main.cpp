@@ -1,71 +1,86 @@
 #include<iostream>
-#include "MemCache.h"
+#include "kvstore_api.h"
+#include "kvstore.h"
 
-int main()
-{
-	//Skiplist skp;
-	//SSTable sst;
-	//for (int i = 0;i <10;++i)
-	//{
-	//	skp.put(i, "abc");
-	//}
-	//skp.showSkipList();
-	//sst.write_to_file(&skp);
-	//sst.read_cache_from_file("test1.sst");
 
-	//Header h = sst.test_header();
-	//std::cout << "header stamp:" << h.stamp << " pair_num:" << h.pair_number << " key_min:" << h.key_min << " key_max:" << h.key_max << std::endl;
+//void regular_test(uint64_t max)
+//{
+//	uint64_t i;
+//
+//	// Test a single key
+//	EXPECT(not_found, store.get(1));
+//	store.put(1, "SE");
+//	EXPECT("SE", store.get(1));
+//	EXPECT(true, store.del(1));
+//	EXPECT(not_found, store.get(1));
+//	EXPECT(false, store.del(1));
+//
+//
+//	// Test multiple key-value pairs
+//	for (i = 0; i < max; ++i) {
+//		store.put(i, std::string(i + 1, 's'));
+//		EXPECT(std::string(i + 1, 's'), store.get(i));
+//	}
+//
+//	// Test after all insertions
+//	for (i = 0; i < max; ++i)
+//		EXPECT(std::string(i + 1, 's'), store.get(i));
+//
+//	// Test deletions
+//	for (i = 0; i < max; i += 2)
+//		EXPECT(true, store.del(i));
+//
+//	for (i = 0; i < max; ++i)
+//		EXPECT((i & 1) ? std::string(i + 1, 's') : not_found,
+//			store.get(i));
+//
+//	for (i = 1; i < max; ++i)
+//		EXPECT(i & 1, store.del(i));
+//
+//}
 
-	//uint32_t offset;
-	//uint32_t data_byte;
-	//key_type t = sst.get_offset(0, offset, data_byte);
-	//std::cout << "key_type:" << t << " offset:" << offset << " databyte:" << data_byte << std::endl;
-	//std::cout << "data from value:"<<sst.read_data_from_file("test1.sst", offset, data_byte,t) << std::endl;
-	MemCache mc("");
-
-	mc.reset();
-
-	//for (int j = 0;j < 14;++j)
-	//{
-	//	
-	//	for (int i = 0;i < 10;++i)
-	//	{
-	//		mc.put(i, "a" + std::to_string(i));
-	//	}
-
-	//	mc.put(10, "~DELETED~");
-
-	//	mc.dump2sst();
-	//}
-
-	for (int i = 0;i < 10;++i)
-	{
-		mc.put(i, "a" + std::to_string(i));
-	}
-	mc.dump2sst();
-	
-
-	for (int i = 0;i < 10;++i)
-	{
-		std::string val;
-		mc.get(i,val);
-		std::cout << "get:" << val << std::endl;
-	}
-	for (int i = 20;i < 30;++i)
-	{
-		std::string val;
-		mc.get(i, val);
-		std::cout << "get:" << val << std::endl;
-	}
-	std::string del_val;
-	if (!mc.get(10, del_val))
-	{
-		std::cout << "delete not found" << std::endl;
-	}
-
-	//mc.reset();
-	
-
-	
-	return 0;
-}
+//int main()
+//{
+//
+//	KVStore store("store");
+//	store.reset();
+//	//Skiplist store;
+//
+//	//int scale[2] = { 512,1024 * 64 };
+//	//for (int k = 0;k < 2;++k)
+//	//{
+//	//	int limit = scale[k];
+//	//	for (int i = 0; i < limit; ++i) {
+//	//		store.put(i, std::string(i, 's'));
+//	//		std::string get_val = store.get(i);
+//	//		bool result = (std::string(i, 's') == get_val);
+//	//		if (result == false)
+//	//		{
+//	//			std::cout << "result expected:" << std::string(i, 's') << "  got:" << get_val << std::endl;
+//	//		}
+//	//	}
+//	//}
+//	store.put(10, std::string(10, 'a'));
+//
+//	std::cout << "after put ------------" << std::endl;
+//	store.show_memtable();
+//	std::cout << "-----------------" << std::endl;
+//	//store.del(10);
+//	//std::cout << "after del------------" << std::endl;
+//	//store.show_memtable();
+//	//std::cout << "-----------------" << std::endl;
+//
+//	store.put(10, std::string(1, 's'));
+//	std::cout << "after put again------------" << std::endl;
+//	store.show_memtable();
+//	std::cout << "-----------------" << std::endl;
+//	std::cout<<store.get(10)<<std::endl;
+//
+//
+//	std::cout << "finish" << std::endl;
+//
+//	
+//
+//	
+//	return 0;
+//}

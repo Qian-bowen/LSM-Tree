@@ -10,6 +10,7 @@ SSTable::SSTable(std::string sp)
 	sst_path = sp;
 }
 
+
 /*
 return 0 : fail to find key
 return 2 : find last key
@@ -17,10 +18,10 @@ return 1 : find other key
 */
 key_type SSTable::get_offset(uint64_t key, uint32_t& offset, uint32_t& data_byte)
 {
-	uint32_t start = 0,end=index.size()-1;
+	int start = 0,end=index.size()-1;
 	while (start <= end)
 	{
-		uint32_t mid = (start + end) / 2;
+		int mid = (start + end) / 2;
 		uint64_t mid_key=index[mid].key;
 		if (key == mid_key)
 		{
@@ -67,11 +68,29 @@ void SSTable::generate_hd_bf_idx(Skiplist* memtable, uint64_t timestamp)
 	last_bound = cur;
 
 	//add header
-	//todo timestamp
 	header.stamp =timestamp;
 	header.pair_number = memtable->pair_size();
     header.key_min = memtable->get_all_header()->key;
     if(last_bound&&last_bound->prev) header.key_max = last_bound->prev->key;
+}
+
+void SSTable::generate_hd_bf_idx(std::list<std::pair<uint64_t, std::string>>& table, uint64_t timestamp)
+{
+	uint32_t index_all_byte =table.size() * index_byte;
+	uint32_t data_offset = header_byte + bf_byte + index_all_byte;
+	for (auto& kv : table)
+	{
+		Index tmp(kv.first, data_offset);
+		index.push_back(tmp);
+		//add bloomfilter
+		bloomfilter.add_key(kv.first);
+		//increase offset and use string.size() to get exact size
+		data_offset += kv.second.size();
+	}
+	header.stamp = timestamp;
+	header.pair_number =table.size();
+	header.key_min = table.front().first;
+	header.key_max = table.back().first;
 }
 
 //TODO:improve write/read efficiency
@@ -105,6 +124,24 @@ void SSTable::write_to_file(Skiplist* memtable, uint64_t timestamp)
 	outsst.close();
 }
 
+void SSTable::write_to_file(std::list<std::pair<uint64_t, std::string>>& table, uint64_t timestamp)
+{
+	generate_hd_bf_idx(table, timestamp);
+	std::ofstream outsst(sst_path, std::ios::out | std::ios::binary);
+	outsst.write(reinterpret_cast<char*>(&header), header_byte);
+	outsst.write(reinterpret_cast<char*>(bloomfilter.get_bf()), bf_byte);
+	for (auto idx : index)
+	{
+		outsst.write(reinterpret_cast<char*>(&idx.key), sizeof(idx.key));
+		outsst.write(reinterpret_cast<char*>(&idx.offset), sizeof(idx.offset));
+	}
+	for (auto& kv : table)
+	{
+		outsst.write((&kv.second[0]), kv.second.size());
+	}
+	outsst.close();
+}
+
 
 void SSTable::read_cache_from_file()
 {
@@ -129,27 +166,26 @@ void SSTable::read_cache_from_file()
 
 	while(cur_offset<first_offset)
 	{
-		//std::cout << "cur_offset:" << cur_offset << " gcount:"<<insst.gcount()<<std::endl;
+
 		uint64_t tmp_key;
 		uint32_t tmp_offset;
 		insst.read(reinterpret_cast<char*>(&tmp_key), sizeof(tmp_key));
 		insst.read(reinterpret_cast<char*>(&tmp_offset), sizeof(tmp_offset));
 		Index tmp(tmp_key, tmp_offset);
+		//std::cout << "tmp_key:" << tmp_key << " tmp_offset:" << tmp_offset << std::endl;
 		index.push_back(tmp);
 		cur_offset += index_byte;
 	}	
 	insst.close();
 }
 
-std::string SSTable::read_data_from_file(uint32_t of_bgn, uint32_t data_byte, key_type type)
+std::string SSTable::extract_data_from_stream(std::ifstream& insst, uint32_t of_bgn, uint32_t data_byte, key_type type)
 {
 	std::string data;
 	char* c_data;
-	std::ifstream insst(sst_path, std::ios::in | std::ios::binary);
-	
 	if (LAST_KEY == type)
 	{
-		insst.seekg(0,std::ios::end);
+		insst.seekg(0, std::ios::end);
 		uint32_t end_pos = insst.tellg();
 		data_byte = end_pos - of_bgn;
 	}
@@ -159,8 +195,49 @@ std::string SSTable::read_data_from_file(uint32_t of_bgn, uint32_t data_byte, ke
 
 	insst.seekg(of_bgn);
 	insst.read(c_data, data_byte);
-	insst.close();
 
 	data.assign(c_data);
 	return data;
+}
+
+//extract 
+std::string SSTable::read_data_from_file(uint32_t of_bgn, uint32_t data_byte, key_type type)
+{
+	std::ifstream insst(sst_path, std::ios::in | std::ios::binary);
+	return extract_data_from_stream(insst,of_bgn,data_byte,type);	
+}
+
+void SSTable::read_all_data_from_file(std::list<std::pair<uint64_t, std::string>>& kv_vec)
+{
+	//if not read cache
+	if (index.empty())
+	{
+		read_cache_from_file();
+	}
+
+	std::ifstream insst(sst_path, std::ios::in | std::ios::binary);
+
+	for (auto idx=index.begin();idx!=index.end();++idx)
+	{
+		std::string str_data;
+		uint64_t key = (*idx).key;
+		uint32_t offset = (*idx).offset;
+		uint32_t offset_next=0;
+		//if last key
+		if (idx+1!=index.end())
+		{
+			offset_next = (*(idx + 1)).offset;
+			str_data = extract_data_from_stream(insst, offset, offset_next - offset, ORDIN_KEY);		
+		}
+		else
+		{
+			str_data = extract_data_from_stream(insst, offset, 0, LAST_KEY);
+		}
+
+		//std::cout << "key:" << key << " str size:" << str_data.size() << std::endl;
+		
+		kv_vec.push_back(std::pair<uint64_t, std::string>(key,str_data));
+	}
+
+	insst.close();
 }

@@ -3,6 +3,7 @@
 #include "utils.h"
 #include <list>
 #include <filesystem>
+#include <queue>
 
 //memtable max size is 2MB
 #define MT_MAX 2*(1<<20)
@@ -10,7 +11,6 @@
 /*
 file hierarchy
 ©À©¤©¤ data/
-|	©À©¤©¤ timestamp.stp
 ©¦   ©À©¤©¤ level-0/
 |	|		©À©¤©¤l0-(time stamp).sst
 |	|		©À©¤©¤l0-2.sst
@@ -22,27 +22,46 @@ file hierarchy
 
 enum CACHE_ERROR{IVD_PATH,FAIL_DEL_SST,FAIL_DEL_DIR};
 
-class MemCache {
+struct merge_elem {
+	uint64_t key;
+	uint64_t stamp;
+	std::list<std::pair<uint64_t, std::string>>::iterator iter;
+	std::list<std::pair<uint64_t, std::string>>::iterator iter_end;
+	std::string value;
+	bool operator<(const merge_elem& rhs)const {
+		return key > rhs.key;
+	}
+};
+
+class MemCache{
 	Skiplist memtable;
-	std::list<std::list<SSTable*>> sstCache;
+	std::vector<std::list<SSTable*>> sstCache;
 	std::string root_path;/*root path is empty or end with '/' */
 	uint64_t cur_timestamp;
 
 	void load_sstCache();
 	void clear_sstCache();
 
-	void merge_level() {};
-	void real_del();//delete in last level when merge
+	void write_to_level(std::list<std::pair<uint64_t, std::string>>& table,int lev);
+	std::string get_path(int lev);
+	void mergelist_to_writelist(std::list<merge_elem>& merge_list, std::list<std::pair<uint64_t, std::string>>& write_list);
+
+	void multiple_merge(std::vector<SSTable*> vec,int lev);
+	void merge_sort(std::vector<std::list<std::pair<uint64_t, std::string>>>& lists, std::vector<uint64_t>& stamp,int lev);
+
+	
 
 public:
-	MemCache() {};
 	MemCache(std::string tp);
 	~MemCache();
-
-	void dump2sst();//should be public
 
 	bool put(uint64_t key, std::string value);
 	bool get(uint64_t key, std::string& value);
 	bool del(uint64_t key);
 	void reset();
+
+	void dump2sst();//should be private, public for test
+	
+	//test
+	void show_memtable() { memtable.showSkipList(); }
 };
