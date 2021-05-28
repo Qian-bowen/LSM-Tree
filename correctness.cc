@@ -36,15 +36,24 @@ private:
 		phase();
 
 		// Test deletions
-		for (i = 0; i < max; i+=2)
+		for (i = 0; i < max; i += 2)
+		{
+			//std::cout << "del1:" << i << std::endl;
 			EXPECT(true, store.del(i));
+		}
 
 		for (i = 0; i < max; ++i)
-			EXPECT((i & 1) ? std::string(i+1, 's') : not_found,
-			       store.get(i));
+		{
+			//std::cout << "get:" << i << std::endl;
+			EXPECT((i & 1) ? std::string(i + 1, 's') : not_found,
+				store.get(i));
+		}
 
 		for (i = 1; i < max; ++i)
+		{
+			//std::cout << "del2:" << i << std::endl;
 			EXPECT(i & 1, store.del(i));
+		}
 
 		phase();
 

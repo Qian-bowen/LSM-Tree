@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <vector>
 #include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -11,7 +13,7 @@
 #include <io.h>
 #include <windows.h>
 #endif
-#if defined(linux) || defined(__MINGW32__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__MINGW32__) || defined(__APPLE__)
 #include <dirent.h>
 #include <unistd.h>
 #endif
@@ -34,7 +36,7 @@ namespace utils{
      * @param ret all files name in directory.
      * @return files number.
      */
-    #if defined(_WIN32) && !defined(__MINGW32__) 
+    #if defined(_WIN32) && !defined(__MINGW32__)
     static inline int scanDir(std::string path, std::vector<std::string> &ret){
         std::string extendPath;
         if(path[path.size() - 1] == '/'){
@@ -61,7 +63,7 @@ namespace utils{
         return ret.size();
     }
     #endif
-    #if defined(linux) || defined(__MINGW32__) || defined(__APPLE__)
+    #if defined(__linux__) || defined(__MINGW32__) || defined(__APPLE__)
     static inline int scanDir(std::string path, std::vector<std::string> &ret){
         DIR *dir;
         struct dirent *rent;
@@ -71,7 +73,7 @@ namespace utils{
             strcpy(s,rent->d_name);
             if (s[0] != '.'){
                 ret.push_back(s);
-            }   
+            }
         }
         closedir(dir);
         return ret.size();
@@ -138,5 +140,5 @@ namespace utils{
     }
 
 
-    
+
 }

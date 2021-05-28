@@ -94,7 +94,6 @@ void MemCache::multiple_merge(std::vector<SSTable*> vec, int lev)
 read file to memory first, and sort
 merge sstable into one
 */
-//todo : dupilcate element delete based on timestamp
 void MemCache::merge_sort(std::vector<std::list<std::pair<uint64_t,std::string>>>& lists, std::vector<uint64_t>& stamp,int lev)
 {
 	int max_lev = sstCache.size();
@@ -301,13 +300,16 @@ bool MemCache::put(uint64_t key, std::string value)
 	return memtable.put(key,value);
 }
 
+//
 bool MemCache::get(uint64_t key, std::string& value)
 {
 	//search memtable first
 	bool mem_get=memtable.get(key, value);
-	//std::cout << "mem get:" << value << std::endl;
+	//std::cout << "mem get:" <<mem_get<<"  value:"<< value << std::endl;
 	if (mem_get)
 		return true;
+	if (value == "~DELETED~")
+		return false;
 	//search sstCache
     for (auto& level:sstCache)
     {
@@ -345,7 +347,7 @@ bool MemCache::get(uint64_t key, std::string& value)
 
 bool MemCache::del(uint64_t key)
 {
-	//do not delete directly add new one
+	//first search in memtable,the in sstable
 	std::string val;
 	if (memtable.get(key,val))
 	{
@@ -353,9 +355,13 @@ bool MemCache::del(uint64_t key)
 		memtable.put(key, "~DELETED~");
 		return true;
 	}
-	else
+	else if(get(key, val))
 	{
 		memtable.put(key, "~DELETED~");
+		return true;
+	}
+	else
+	{
 		return false;
 	}
 }

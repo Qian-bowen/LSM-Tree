@@ -1,44 +1,11 @@
-#include<iostream>
-#include "kvstore_api.h"
-#include "kvstore.h"
-
-
-//void regular_test(uint64_t max)
-//{
-//	uint64_t i;
+//#include<iostream>
+//#include "kvstore_api.h"
+//#include "kvstore.h"
 //
-//	// Test a single key
-//	EXPECT(not_found, store.get(1));
-//	store.put(1, "SE");
-//	EXPECT("SE", store.get(1));
-//	EXPECT(true, store.del(1));
-//	EXPECT(not_found, store.get(1));
-//	EXPECT(false, store.del(1));
+////todo : dupilcate element delete based on timestamp
+////todo : choose smaller timestamp when merge
 //
 //
-//	// Test multiple key-value pairs
-//	for (i = 0; i < max; ++i) {
-//		store.put(i, std::string(i + 1, 's'));
-//		EXPECT(std::string(i + 1, 's'), store.get(i));
-//	}
-//
-//	// Test after all insertions
-//	for (i = 0; i < max; ++i)
-//		EXPECT(std::string(i + 1, 's'), store.get(i));
-//
-//	// Test deletions
-//	for (i = 0; i < max; i += 2)
-//		EXPECT(true, store.del(i));
-//
-//	for (i = 0; i < max; ++i)
-//		EXPECT((i & 1) ? std::string(i + 1, 's') : not_found,
-//			store.get(i));
-//
-//	for (i = 1; i < max; ++i)
-//		EXPECT(i & 1, store.del(i));
-//
-//}
-
 //int main()
 //{
 //
@@ -60,26 +27,15 @@
 //	//		}
 //	//	}
 //	//}
-//	store.put(10, std::string(10, 'a'));
 //
-//	std::cout << "after put ------------" << std::endl;
-//	store.show_memtable();
-//	std::cout << "-----------------" << std::endl;
-//	//store.del(10);
-//	//std::cout << "after del------------" << std::endl;
-//	//store.show_memtable();
-//	//std::cout << "-----------------" << std::endl;
+//	for (int i = 1; i < 200; ++i) {
+//		store.put(i, std::string(i, 's'));
+//	}
+//	store.force_dump_test();
 //
-//	store.put(10, std::string(1, 's'));
-//	std::cout << "after put again------------" << std::endl;
-//	store.show_memtable();
-//	std::cout << "-----------------" << std::endl;
-//	std::cout<<store.get(10)<<std::endl;
+//	store.del(100);
 //
-//
-//	std::cout << "finish" << std::endl;
-//
-//	
+//	std::cout<<"get:"<<store.get(100)<<std::endl;
 //
 //	
 //	return 0;
