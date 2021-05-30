@@ -12,7 +12,7 @@
 file hierarchy
 ©À©¤©¤ data/
 ©¦   ©À©¤©¤ level-0/
-|	|		©À©¤©¤l0-(time stamp).sst
+|	|		©À©¤©¤l0-(file index).sst
 |	|		©À©¤©¤l0-2.sst
 |	|		...
 ©¦   ©À©¤©¤ level-1
@@ -38,11 +38,12 @@ class MemCache{
 	std::vector<std::list<SSTable*>> sstCache;
 	std::string root_path;/*root path is empty or end with '/' */
 	uint64_t cur_timestamp;
+	int cur_file_idx;
 
 	void load_sstCache();
 	void clear_sstCache();
 
-	void write_to_level(std::list<std::pair<uint64_t, std::string>>& table,int lev);
+	void write_to_level(std::list<std::pair<uint64_t, std::string>>& table,int lev,uint64_t stamp);
 	std::string get_path(int lev);
 	void mergelist_to_writelist(std::list<merge_elem>& merge_list, std::list<std::pair<uint64_t, std::string>>& write_list);
 
@@ -64,4 +65,8 @@ public:
 	
 	//test
 	void show_memtable() { memtable.showSkipList(); }
+	void merge_sort_test(std::vector<std::list<std::pair<uint64_t, std::string>>>& lists, std::vector<uint64_t>& stamp, int lev)
+	{ 
+		merge_sort(lists,stamp,lev); 
+	}
 };

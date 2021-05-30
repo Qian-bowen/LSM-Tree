@@ -19,6 +19,7 @@ void MemCache::load_sstCache()
 {
 	//set init timestamp
 	cur_timestamp = -1;
+	cur_file_idx = 0;
 
 
 	//if root_path directory not exist, create one
@@ -46,6 +47,14 @@ void MemCache::load_sstCache()
 
 		for (auto& sst_path : sst_vec)
 		{
+			//extract file idx
+			int pos = sst_path.find("-");
+			int idx = stoi(sst_path.substr(pos+1));
+			if (idx > cur_file_idx)
+			{
+				cur_file_idx = idx;
+			}
+
 			std::string sst_path_all = subdir_path_all + "/" + sst_path;
 			SSTable* sst = new SSTable(sst_path_all);
 			sst->read_cache_from_file();
@@ -65,9 +74,9 @@ void MemCache::load_sstCache()
 //lists and stamp match in order
 void MemCache::multiple_merge(std::vector<SSTable*> vec, int lev)
 {
+	//std::cout << "multiple merge" << std::endl;
 	std::vector<std::list<std::pair<uint64_t, std::string>>> lists;
 	std::vector<uint64_t> stamp;
-	std::list<std::pair<uint64_t, std::string>> merged_list;
 	
 	for (auto& sst : vec)
 	{
@@ -100,10 +109,14 @@ void MemCache::merge_sort(std::vector<std::list<std::pair<uint64_t,std::string>>
 	std::priority_queue<merge_elem> queue;
 	std::list<merge_elem> sorted_list;
 	uint32_t all_byte = header_byte + bf_byte;
+	uint64_t new_stamp = 0;//max timestamp is the new timestamp
 
 	int stamp_iter = 0;
 	for (auto& sst : lists)
 	{
+		uint64_t old_stamp = stamp[stamp_iter];
+		if(old_stamp > new_stamp)
+			new_stamp = old_stamp;
 		queue.push({sst.begin()->first,stamp[stamp_iter],sst.begin(),sst.end(),sst.begin()->second});
 		++stamp_iter;
 	}
@@ -114,8 +127,7 @@ void MemCache::merge_sort(std::vector<std::list<std::pair<uint64_t,std::string>>
 		queue.pop();
 
 		//push a new elem to priority queue
-		auto new_iter = f.iter;
-		new_iter++;
+		auto new_iter = std::next(f.iter);
 		if (new_iter != f.iter_end)
 		{
 			uint64_t stamp = f.stamp;
@@ -123,44 +135,52 @@ void MemCache::merge_sort(std::vector<std::list<std::pair<uint64_t,std::string>>
 		}
 
 		//if the key duplicate, and the elem in the sorted_list timestamp is smaller,just remove it
-		if (!sorted_list.empty() && f.key == sorted_list.back().key && f.stamp>sorted_list.back().stamp)
+		//or ignore the pair
+		if (!sorted_list.empty() && f.key == sorted_list.back().key)
 		{
-			sorted_list.pop_back();
-		}
-
-		uint32_t add_byte= index_byte + sizeof(f.iter->first) + f.iter->second.size();
-		if ((all_byte+add_byte) > MT_MAX)
-		{
-			//chunk the list
-			//write to next level
-			std::list<std::pair<uint64_t, std::string>> write_list;
-			mergelist_to_writelist(sorted_list, write_list);
-			write_to_level(write_list, lev + 1);
-			sorted_list.clear();
-			all_byte = header_byte + bf_byte;
+			if (f.stamp > sorted_list.back().stamp)
+			{
+				sorted_list.pop_back();
+			}
+			else
+				continue;
 		}
 
 		//check whether need to delete
-		if (lev == max_lev && f.value == "~DELETED~")
+		if (lev+1 == max_lev && f.value == "~DELETED~")
 			continue;
 
 		sorted_list.push_back(f);
+	}
+
+	//write sorted list to next level,chunk the list
+	std::list<std::pair<uint64_t, std::string>> write_list;
+	auto iter = sorted_list.begin();
+	for (;iter!=sorted_list.end();++iter)
+	{
+		uint32_t add_byte = index_byte + sizeof(iter->iter->first) + iter->iter->second.size();
+		if ((all_byte + add_byte) > MT_MAX)
+		{
+			write_to_level(write_list, lev + 1, new_stamp);
+			write_list.clear();
+			all_byte = header_byte + bf_byte;
+		}
+		write_list.push_back(std::pair<uint64_t, std::string>(iter->key,iter->value));
 		all_byte += add_byte;
 	}
 
-	//write the remain list below MT_MAX to level
-	std::list<std::pair<uint64_t, std::string>> write_list;
-	mergelist_to_writelist(sorted_list, write_list);
-	write_to_level(write_list, lev + 1);
+	if(!write_list.empty())
+		write_to_level(write_list, lev + 1,new_stamp);
 
 	return;
 }
 
 std::string MemCache::get_path(int lev)
 {
-	std::string filename = "/l" + std::to_string(lev) + "-" + std::to_string(cur_timestamp) + ".sst";
+	std::string filename = "/l" + std::to_string(lev) + "-" + std::to_string(cur_file_idx) + ".sst";
 	//increase current timestamp
 	++cur_timestamp;
+	++cur_file_idx;
 	std::string dir_path = root_path + "/level-" + std::to_string(lev);
 	std::string file_path = dir_path + filename;
 
@@ -181,7 +201,7 @@ void MemCache::mergelist_to_writelist(std::list<merge_elem>& merge_list, std::li
 	}
 }
 
-void MemCache::write_to_level(std::list<std::pair<uint64_t, std::string>>& table,int lev)
+void MemCache::write_to_level(std::list<std::pair<uint64_t, std::string>>& table,int lev, uint64_t stamp)
 {
 	SSTable* sst = new SSTable(get_path(lev));
 	//check whether next level exist
@@ -199,7 +219,8 @@ void MemCache::write_to_level(std::list<std::pair<uint64_t, std::string>>& table
 	std::list<SSTable*>& cur_level = sstCache[lev];
 	cur_level.push_back(sst);
 	//write to file and construct header in it
-	sst->write_to_file(table, cur_timestamp);
+	//std::cout << "write to lev:"<<lev<<" with stamp:" << stamp <<" name:"<<sst->get_sst_path()<< std::endl;
+	sst->write_to_file(table, stamp);//file name cannot be timestamp!!!!todo!!!!!
 }
 
 
@@ -219,9 +240,10 @@ void MemCache::dump2sst()
     }
 	
 	//write to level-0
+	//todo : construct sst key stamp
 	SSTable* sst = new SSTable(get_path(0));
 	sst->write_to_file(&memtable, cur_timestamp);
-	sstCache.front().push_back(sst);
+	sstCache[0].push_back(sst);
 	//clear memtable after dump
 	memtable.clear();
 	
@@ -242,6 +264,10 @@ void MemCache::dump2sst()
 		uint64_t min_key = INT64_MAX,max_key=0;
 		//add overflow file in this level to merge list
 		std::vector<SSTable*> sst_to_merge;
+		//sort this level to let sst with small timestamp go front
+		level.sort([](SSTable*& a, SSTable*& b) {return a->get_timestamp() < b->get_timestamp();});
+		//choose flow_num of sst to merge, if timestamp equal,choose key smaller one
+		//TODO:
 		for (int i = 0;i < flow_num;++i)
 		{
 			SSTable* sst = level.front();
@@ -261,19 +287,20 @@ void MemCache::dump2sst()
 		}
 
 		//add file in next level that overlaps in time to merge list
-		//if there is no next level, create next level
-		//TODO: using const properly
 		if (lev+1!=max_level)
 		{
 			auto& next_level = sstCache[lev+1];
-			for (auto sst_iter=next_level.begin();sst_iter!=next_level.end();++sst_iter)
+			for (auto sst_iter = next_level.begin();sst_iter != next_level.end();)
 			{
 				uint64_t cur_min = (*sst_iter)->get_min_key(), cur_max = (*sst_iter)->get_max_key();
-				bool choice = !(cur_min > max_key || cur_max < min_key);
 				if (!(cur_min > max_key || cur_max < min_key))
 				{
 					sst_to_merge.push_back(*sst_iter);
-					next_level.erase(sst_iter);
+					sst_iter=next_level.erase(sst_iter);
+				}
+				else
+				{
+					++sst_iter;
 				}
 			}
 		}
@@ -305,17 +332,20 @@ bool MemCache::get(uint64_t key, std::string& value)
 {
 	//search memtable first
 	bool mem_get=memtable.get(key, value);
-	//std::cout << "mem get:" <<mem_get<<"  value:"<< value << std::endl;
+
 	if (mem_get)
+	{
 		return true;
+	}
 	if (value == "~DELETED~")
 		return false;
 	//search sstCache
     for (auto& level:sstCache)
-    {
-		//sort level, sstable timestamp from large to small
-		//level.sort([](SSTable* left, SSTable* right) {return left->get_timestamp() < right->get_timestamp();});
-        for (auto& sst:level)
+    {    
+		std::string lev_search_str = "";
+		uint64_t lev_find_stamp = 0;
+		bool lev_find = false;
+		for (auto& sst:level)
         {
 			//use bloomfilter to check
 			//impossible in sst
@@ -328,19 +358,29 @@ bool MemCache::get(uint64_t key, std::string& value)
 			{
 				uint32_t offset, data_byte;
 				key_type kt = sst->get_offset(key, offset, data_byte);
-				if (NONE_KEY == kt)
-                    continue;
-				else
+				if (NONE_KEY != kt)
 				{
+					lev_find = true;
 					value=sst->read_data_from_file(offset, data_byte, kt);
-					//std::cout << "get value in sst:" << value << std::endl;
-					if ("~DELETED~" == value)
-						return false;
-					else
-						return true;
+					uint64_t cur_stamp = sst->get_timestamp();
+					if (cur_stamp > lev_find_stamp)
+					{
+						lev_find_stamp = cur_stamp;
+						lev_search_str = value;
+					}
 				}
             }
         }
+
+		//whether searched in this level
+		if (lev_search_str == "~DELETED~")
+			return false;
+		else if (lev_find)
+		{
+			value = lev_search_str;
+			return true;
+		}
+
 	}
 	return false;
 }
@@ -368,13 +408,16 @@ bool MemCache::del(uint64_t key)
 
 void MemCache::clear_sstCache()
 {
-	for (auto& level : sstCache)
+	if (sstCache.empty())
+		return;
+	std::cout << "sstCache size:" << sstCache.size() << std::endl;
+	for (auto level : sstCache)
 	{
-		for (auto& sst : level)
+		std::cout << "level size:" << level.size() << std::endl;
+		for (auto sst : level)
 		{
 			delete sst;
 		}
-		level.clear();
 	}
 	sstCache.clear();
 }
@@ -407,4 +450,5 @@ void MemCache::reset()
 	clear_sstCache();
 	//clear timestamp to zero
 	cur_timestamp = 0;
+	cur_file_idx = 0;
 }

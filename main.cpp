@@ -1,42 +1,37 @@
-//#include<iostream>
-//#include "kvstore_api.h"
-//#include "kvstore.h"
-//
-////todo : dupilcate element delete based on timestamp
-////todo : choose smaller timestamp when merge
-//
+#include<iostream>
+#include "kvstore_api.h"
+#include "kvstore.h"
+
+//todo : dupilcate element delete based on timestamp
+//todo : choose smaller timestamp when merge
+
 //
 //int main()
 //{
+//	MemCache store("store");
+//	//KVStore store("store");
+//	//store.reset();
+//	//list1:0:a , 3:sss , 4: ssss ,6:ssssss stamp:1
+//	//list2:1:s , 2:ss , 4: ~DELETED~ , 6:aaaaaa stamp:2 
+//	std::vector<std::list<std::pair<uint64_t, std::string>>> lists;
 //
-//	KVStore store("store");
-//	store.reset();
-//	//Skiplist store;
+//	std::list<std::pair<uint64_t, std::string>> the_list,list2;
+//	the_list.push_back(std::pair<uint64_t, std::string>(0,"a"));
+//	the_list.push_back(std::pair<uint64_t, std::string>(3, "sss"));
+//	the_list.push_back(std::pair<uint64_t, std::string>(4, "ssss"));
+//	the_list.push_back(std::pair<uint64_t, std::string>(6, "ssssss"));
 //
-//	//int scale[2] = { 512,1024 * 64 };
-//	//for (int k = 0;k < 2;++k)
-//	//{
-//	//	int limit = scale[k];
-//	//	for (int i = 0; i < limit; ++i) {
-//	//		store.put(i, std::string(i, 's'));
-//	//		std::string get_val = store.get(i);
-//	//		bool result = (std::string(i, 's') == get_val);
-//	//		if (result == false)
-//	//		{
-//	//			std::cout << "result expected:" << std::string(i, 's') << "  got:" << get_val << std::endl;
-//	//		}
-//	//	}
-//	//}
+//	list2.push_back(std::pair<uint64_t, std::string>(1, "s"));
+//	list2.push_back(std::pair<uint64_t, std::string>(2, "ss"));
+//	list2.push_back(std::pair<uint64_t, std::string>(4, "~DELETED~"));
+//	list2.push_back(std::pair<uint64_t, std::string>(6, "aaaaaa"));
 //
-//	for (int i = 1; i < 200; ++i) {
-//		store.put(i, std::string(i, 's'));
-//	}
-//	store.force_dump_test();
+//	std::vector<uint64_t> stamp{ 1, 2 };
+//	lists.push_back(the_list);
+//	lists.push_back(list2);
+//	store.merge_sort_test(lists,stamp,0);
 //
-//	store.del(100);
-//
-//	std::cout<<"get:"<<store.get(100)<<std::endl;
-//
+//	
 //	
 //	return 0;
 //}

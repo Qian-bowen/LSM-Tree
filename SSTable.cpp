@@ -27,7 +27,7 @@ key_type SSTable::get_offset(uint64_t key, uint32_t& offset, uint32_t& data_byte
 		{
 			offset = index[mid].offset;
 			//find data_byte
-			if (mid+1 != index.size())
+            if (mid+1 != (int)index.size())
 			{
 				data_byte = index[mid + 1].offset - offset;
 				return ORDIN_KEY;
@@ -234,8 +234,7 @@ void SSTable::read_all_data_from_file(std::list<std::pair<uint64_t, std::string>
 			str_data = extract_data_from_stream(insst, offset, 0, LAST_KEY);
 		}
 
-		//std::cout << "key:" << key << " str size:" << str_data.size() << std::endl;
-		
+
 		kv_vec.push_back(std::pair<uint64_t, std::string>(key,str_data));
 	}
 

@@ -25,7 +25,7 @@ void KVStore::put(uint64_t key, const std::string &s)
  */
 std::string KVStore::get(uint64_t key)
 {
-	std::string val;
+	std::string val="";
 	if (!memCache->get(key, val))
 	{
 		val = "";

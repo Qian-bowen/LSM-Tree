@@ -70,7 +70,7 @@ void Skiplist::clear()
 bool Skiplist::get(uint64_t key,std::string& value)
 {
 	if (header.empty()) return false;
-	Node* p = *header.begin(),*enter=*header.begin();
+    Node* p = *header.begin(),*enter=*header.begin();
 	if (!skipSearch(key, enter, p))
 		return false;
 	else
@@ -89,7 +89,7 @@ bool Skiplist::skipSearch(uint64_t& key, Node*& enter, Node*& p)
 	{
 		while (p->next && !p->next->isBoundNode() && (p->next->key <= key))
 			p = p->next;
-		if (p && (p->key == key))
+		if (p && !p->isBoundNode()&& (p->key == key))
 			return true;
 		//if not find in this level
 		enter = enter->down;
@@ -139,13 +139,15 @@ bool Skiplist::put(uint64_t key, std::string value)
 	Node* p = (*header.begin()),*enter= *header.begin();
 	if (skipSearch(key, enter, p))
 	{
+		int old_ubyte=sizeof(p->key)+p->value.size();
 		p->value = value;
 		while (p->down)
 		{
 			p = p->down;
 			p->value = value;
 		}
-
+		//resize ubyte
+		_ubyte=_ubyte-old_ubyte+ sizeof(key) + value.size();
 		return true;
 	}
 
@@ -190,20 +192,25 @@ bool Skiplist::del(uint64_t key)
 		removeHeader();
 	}
 	--_pair_size;
-	_ubyte -= (sizeof(key) + del_val.size());
+	//std::cout << "del key byte:" << sizeof(key) << " " << del_val.size() << std::endl;
+	_ubyte =_ubyte - (sizeof(key) + del_val.size());
+	//std::cout << "after del ubyte:" << _ubyte << std::endl;
 	return true;
 }
 
 void Skiplist::showSkipList()
 {
+	std::cout << "-----------------" << std::endl;
 	for (auto it : header)
 	{
 		auto tmp = it;
-		while (tmp->next&&!tmp->next->isBoundNode())
+        while (tmp)
 		{
-			tmp = tmp->next;
-			std::cout << tmp->key << ' '<<tmp->value<<' ';
+			/*std::cout << tmp->key << ' '<<tmp->value<<' ';*/
+			std::cout << tmp->key << ' ';
+            tmp = tmp->next;
 		}
 		std::cout << std::endl;
 	}
+	std::cout << "-----------------" << std::endl;
 }

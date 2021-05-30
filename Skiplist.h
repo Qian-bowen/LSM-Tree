@@ -14,8 +14,8 @@ struct Node {
 	std::string value;
 	bool type;//true means boundary node
 	Node* up, * down, * next, * prev;
-	Node():up(NULL),down(NULL),next(NULL),prev(NULL),type(false){}
-	Node(uint64_t k, std::string v) :key(k),value(v),up(NULL), down(NULL), next(NULL), prev(NULL),type(false) {}
+    Node():key(0),value(""),type(false),up(NULL),down(NULL),next(NULL),prev(NULL){}
+    Node(uint64_t k, std::string v) :key(k),value(v),type(false),up(NULL), down(NULL), next(NULL), prev(NULL) {}
 
     Node* insertAsSuccAbove(uint64_t key, std::string value, Node* b);
 	
@@ -25,7 +25,7 @@ struct Node {
 class Skiplist {
 private:
 	std::list<Node*> header;//node are also connect by next
-	int _size;//node number in skiplist
+    int _size;//node number in skiplist
 	int _pair_size;//key-value size
 	int _ubyte;//unique bytes of key-value
 

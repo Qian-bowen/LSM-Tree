@@ -6,7 +6,7 @@
 
 class CorrectnessTest : public Test {
 private:
-	const uint64_t SIMPLE_TEST_MAX = 512;
+    const uint64_t SIMPLE_TEST_MAX = 512;
 	const uint64_t LARGE_TEST_MAX = 1024 * 64;
 
 	void regular_test(uint64_t max)
@@ -31,33 +31,33 @@ private:
 		phase();
 
 		// Test after all insertions
-		for (i = 0; i < max; ++i)
-			EXPECT(std::string(i+1, 's'), store.get(i));
-		phase();
+        for (i = 0; i < max; ++i)
+            EXPECT(std::string(i+1, 's'), store.get(i));
+        phase();
 
-		// Test deletions
-		for (i = 0; i < max; i += 2)
-		{
-			//std::cout << "del1:" << i << std::endl;
-			EXPECT(true, store.del(i));
-		}
+        // Test deletions
+        for (i = 0; i < max; i += 2)
+        {
+            //std::cout << "del1:" << i << std::endl;
+            EXPECT(true, store.del(i));
+        }
 
-		for (i = 0; i < max; ++i)
-		{
-			//std::cout << "get:" << i << std::endl;
-			EXPECT((i & 1) ? std::string(i + 1, 's') : not_found,
-				store.get(i));
-		}
+        for (i = 0; i < max; ++i)
+        {
+            //std::cout << "get:" << i << std::endl;
+            EXPECT((i & 1) ? std::string(i + 1, 's') : not_found,
+                store.get(i));
+        }
 
-		for (i = 1; i < max; ++i)
-		{
-			//std::cout << "del2:" << i << std::endl;
-			EXPECT(i & 1, store.del(i));
-		}
+        for (i = 1; i < max; ++i)
+        {
+            //std::cout << "del2:" << i << std::endl;
+            EXPECT(i & 1, store.del(i));
+        }
 
-		phase();
+        phase();
 
-		report();
+        report();
 	}
 
 public:
@@ -72,8 +72,8 @@ public:
 		std::cout << "[Simple Test]" << std::endl;
 		regular_test(SIMPLE_TEST_MAX);
 
-		std::cout << "[Large Test]" << std::endl;
-		regular_test(LARGE_TEST_MAX);
+        std::cout << "[Large Test]" << std::endl;
+        regular_test(LARGE_TEST_MAX);
 	}
 };
 
