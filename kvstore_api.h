@@ -43,5 +43,8 @@ public:
 	virtual void force_dump_test()=0;
 
 	virtual void show_memtable()=0;
+
+	virtual std::string get_no_bloom(uint64_t key) = 0;
+	virtual std::string get_no_sst(uint64_t key) = 0;
 };
 

@@ -189,7 +189,7 @@ std::string SSTable::extract_data_from_stream(std::ifstream& insst, uint32_t of_
 		uint32_t end_pos = insst.tellg();
 		data_byte = end_pos - of_bgn;
 	}
-
+	
 	c_data = new char[data_byte + 1];
 	c_data[data_byte] = '\0';
 
@@ -204,7 +204,9 @@ std::string SSTable::extract_data_from_stream(std::ifstream& insst, uint32_t of_
 std::string SSTable::read_data_from_file(uint32_t of_bgn, uint32_t data_byte, key_type type)
 {
 	std::ifstream insst(sst_path, std::ios::in | std::ios::binary);
-	return extract_data_from_stream(insst,of_bgn,data_byte,type);	
+	std::string value = extract_data_from_stream(insst,of_bgn,data_byte,type);	
+	insst.close();
+	return value;
 }
 
 void SSTable::read_all_data_from_file(std::list<std::pair<uint64_t, std::string>>& kv_vec)

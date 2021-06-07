@@ -35,7 +35,6 @@
 
  //		// Prepare data for Test Mode
  //		for (i = 0; i < max; ++i) {
-	//		std::cout << i << ' ';
  //			switch (i & 3) {
  //			case 0:
 	//		{

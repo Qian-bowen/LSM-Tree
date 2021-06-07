@@ -21,8 +21,14 @@ public:
 
 	void reset() override;
 
+
+
 	void force_dump_test()override;
 
 	void show_memtable()override;
+
+	std::string get_no_bloom(uint64_t key) override;
+
+	std::string get_no_sst(uint64_t key) override;
 
 };

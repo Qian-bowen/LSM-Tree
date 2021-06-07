@@ -192,9 +192,7 @@ bool Skiplist::del(uint64_t key)
 		removeHeader();
 	}
 	--_pair_size;
-	//std::cout << "del key byte:" << sizeof(key) << " " << del_val.size() << std::endl;
 	_ubyte =_ubyte - (sizeof(key) + del_val.size());
-	//std::cout << "after del ubyte:" << _ubyte << std::endl;
 	return true;
 }
 

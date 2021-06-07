@@ -69,4 +69,6 @@ public:
 	{ 
 		merge_sort(lists,stamp,lev); 
 	}
+	bool get_no_bloom(uint64_t key, std::string& value);
+	bool get_no_sst(uint64_t key, std::string& value);
 };

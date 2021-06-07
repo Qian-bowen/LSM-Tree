@@ -69,12 +69,13 @@ void MemCache::load_sstCache()
 	}
 	//increase timestamp
 	cur_timestamp++;
+	cur_file_idx++;
 }
 
 //lists and stamp match in order
 void MemCache::multiple_merge(std::vector<SSTable*> vec, int lev)
 {
-	//std::cout << "multiple merge" << std::endl;
+	//std::cout << "compaction" << std::endl;
 	std::vector<std::list<std::pair<uint64_t, std::string>>> lists;
 	std::vector<uint64_t> stamp;
 	
@@ -349,17 +350,20 @@ bool MemCache::get(uint64_t key, std::string& value)
         {
 			//use bloomfilter to check
 			//impossible in sst
-			if (key<sst->get_min_key()||key>sst->get_max_key() || sst->not_in_bf(key))
+			//if (sst->not_in_bf(key))
+			if (key<sst->get_min_key() || key>sst->get_max_key() || sst->not_in_bf(key))
 			{
 				continue;
 			}
 			//probable in sst
 			else
 			{
+				//std::cout << key << "may in" << std::endl;
 				uint32_t offset, data_byte;
 				key_type kt = sst->get_offset(key, offset, data_byte);
 				if (NONE_KEY != kt)
 				{
+					//std::cout << key << "exact in" << std::endl;
 					lev_find = true;
 					value=sst->read_data_from_file(offset, data_byte, kt);
 					uint64_t cur_stamp = sst->get_timestamp();
@@ -384,6 +388,8 @@ bool MemCache::get(uint64_t key, std::string& value)
 	}
 	return false;
 }
+
+
 
 bool MemCache::del(uint64_t key)
 {
@@ -410,10 +416,8 @@ void MemCache::clear_sstCache()
 {
 	if (sstCache.empty())
 		return;
-	std::cout << "sstCache size:" << sstCache.size() << std::endl;
 	for (auto level : sstCache)
 	{
-		std::cout << "level size:" << level.size() << std::endl;
 		for (auto sst : level)
 		{
 			delete sst;
@@ -451,4 +455,117 @@ void MemCache::reset()
 	//clear timestamp to zero
 	cur_timestamp = 0;
 	cur_file_idx = 0;
+}
+
+//test function
+bool MemCache::get_no_bloom(uint64_t key, std::string& value)
+{
+	//search memtable first
+	bool mem_get = memtable.get(key, value);
+
+	if (mem_get)
+	{
+		return true;
+	}
+	if (value == "~DELETED~")
+		return false;
+	//search sstCache
+	for (auto& level : sstCache)
+	{
+		std::string lev_search_str = "";
+		uint64_t lev_find_stamp = 0;
+		bool lev_find = false;
+		for (auto& sst : level)
+		{
+			//if (key<sst->get_min_key() || key>sst->get_max_key())
+			//	continue;
+			//else
+			{
+				uint32_t offset, data_byte;
+				key_type kt = sst->get_offset(key, offset, data_byte);
+				if (NONE_KEY != kt)
+				{
+					lev_find = true;
+					value = sst->read_data_from_file(offset, data_byte, kt);
+					uint64_t cur_stamp = sst->get_timestamp();
+					if (cur_stamp > lev_find_stamp)
+					{
+						lev_find_stamp = cur_stamp;
+						lev_search_str = value;
+					}
+				}
+			}
+		}
+
+		//whether searched in this level
+		if (lev_search_str == "~DELETED~")
+			return false;
+		else if (lev_find)
+		{
+			value = lev_search_str;
+			return true;
+		}
+
+	}
+	return false;
+}
+
+//test function
+bool MemCache::get_no_sst(uint64_t key, std::string& value)
+{
+	//search memtable first
+	bool mem_get = memtable.get(key, value);
+
+	if (mem_get)
+	{
+		return true;
+	}
+	if (value == "~DELETED~")
+		return false;
+	//search sstCache
+	for (auto& level : sstCache)
+	{
+		std::string lev_search_str = "";
+		uint64_t lev_find_stamp = 0;
+		bool lev_find = false;
+		for (auto new_sst : level)
+		{
+			//read from file
+			SSTable* sst = new SSTable(new_sst->get_sst_path());
+			sst->read_cache_from_file();
+			//if (key<sst->get_min_key() || key>sst->get_max_key())
+			//{
+			//	continue;
+			//}
+			////probable in sst
+			//else
+			{
+				uint32_t offset, data_byte;
+				key_type kt = sst->get_offset(key, offset, data_byte);
+				if (NONE_KEY != kt)
+				{
+					lev_find = true;
+					value = sst->read_data_from_file(offset, data_byte, kt);
+					uint64_t cur_stamp = sst->get_timestamp();
+					if (cur_stamp > lev_find_stamp)
+					{
+						lev_find_stamp = cur_stamp;
+						lev_search_str = value;
+					}
+				}
+			}
+			delete sst;
+		}
+
+		//whether searched in this level
+		if (lev_search_str == "~DELETED~")
+			return false;
+		else if (lev_find)
+		{
+			value = lev_search_str;
+			return true;
+		}
+
+	}
+	return false;
 }

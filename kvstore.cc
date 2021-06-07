@@ -60,3 +60,25 @@ void KVStore::show_memtable()
 {
 	memCache->show_memtable();
 }
+
+std::string KVStore::get_no_bloom(uint64_t key)
+{
+	std::string val = "";
+	if (!memCache->get_no_bloom(key, val))
+	{
+		val = "";
+	}
+
+	return val;
+}
+
+std::string KVStore::get_no_sst(uint64_t key)
+{
+	std::string val = "";
+	if (!memCache->get_no_sst(key, val))
+	{
+		val = "";
+	}
+
+	return val;
+}
