@@ -195,8 +195,8 @@ std::string SSTable::extract_data_from_stream(std::ifstream& insst, uint32_t of_
 
 	insst.seekg(of_bgn);
 	insst.read(c_data, data_byte);
-
 	data.assign(c_data);
+	delete c_data;
 	return data;
 }
 

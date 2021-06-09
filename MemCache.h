@@ -45,7 +45,6 @@ class MemCache{
 
 	void write_to_level(std::list<std::pair<uint64_t, std::string>>& table,int lev,uint64_t stamp);
 	std::string get_path(int lev);
-	void mergelist_to_writelist(std::list<merge_elem>& merge_list, std::list<std::pair<uint64_t, std::string>>& write_list);
 
 	void multiple_merge(std::vector<SSTable*> vec,int lev);
 	void merge_sort(std::vector<std::list<std::pair<uint64_t, std::string>>>& lists, std::vector<uint64_t>& stamp,int lev);
@@ -71,4 +70,5 @@ public:
 	}
 	bool get_no_bloom(uint64_t key, std::string& value);
 	bool get_no_sst(uint64_t key, std::string& value);
+	void show_sstCache_info();
 };

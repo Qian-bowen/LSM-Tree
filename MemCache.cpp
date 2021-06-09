@@ -8,11 +8,10 @@ MemCache::MemCache(std::string tp)
 
 MemCache::~MemCache()
 {
-	//dump remain kv to sstable
-    dump2sst();
-	//clear ssCache
+	dump2sst();
 	clear_sstCache();
 }
+
 
 
 void MemCache::load_sstCache()
@@ -91,7 +90,7 @@ void MemCache::multiple_merge(std::vector<SSTable*> vec, int lev)
 	//merge sort
 	 merge_sort(lists,stamp,lev);
 
-	 ////remove old files after merge
+	 //remove old files after merge
 	 for (auto sst : vec)
 	 {
 		 utils::rmfile((sst)->get_sst_path().data());
@@ -194,14 +193,6 @@ std::string MemCache::get_path(int lev)
 	return file_path;
 }
 
-void MemCache::mergelist_to_writelist(std::list<merge_elem>& merge_list, std::list<std::pair<uint64_t, std::string>>& write_list)
-{
-	for (auto& elem : merge_list)
-	{
-		write_list.push_back(std::make_pair(elem.key,elem.value));
-	}
-}
-
 void MemCache::write_to_level(std::list<std::pair<uint64_t, std::string>>& table,int lev, uint64_t stamp)
 {
 	SSTable* sst = new SSTable(get_path(lev));
@@ -216,6 +207,7 @@ void MemCache::write_to_level(std::list<std::pair<uint64_t, std::string>>& table
 			--level_remain;
 		}
 	}
+	//show_sstCache_info();//test
 	//add to memory
 	std::list<SSTable*>& cur_level = sstCache[lev];
 	cur_level.push_back(sst);
@@ -363,7 +355,6 @@ bool MemCache::get(uint64_t key, std::string& value)
 				key_type kt = sst->get_offset(key, offset, data_byte);
 				if (NONE_KEY != kt)
 				{
-					//std::cout << key << "exact in" << std::endl;
 					lev_find = true;
 					value=sst->read_data_from_file(offset, data_byte, kt);
 					uint64_t cur_stamp = sst->get_timestamp();
@@ -568,4 +559,14 @@ bool MemCache::get_no_sst(uint64_t key, std::string& value)
 
 	}
 	return false;
+}
+
+//test level info
+void MemCache::show_sstCache_info()
+{
+	for (auto level : sstCache)
+	{
+		std::cout << level.size()<<"\t";
+	}
+	std::cout << std::endl;
 }
