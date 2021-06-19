@@ -242,8 +242,8 @@
 //
 //	void start_test(void* args = NULL) override
 //	{
-//		test();
-//		//compaction_test();
+//		//test();
+//		compaction_test();
 //		//get_test();
 //	}
 //
