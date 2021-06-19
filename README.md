@@ -1,2 +1,2 @@
-## KVStore using Log-structured Merge Tre
+## KVStore using Log-structured Merge Tree
 
